@@ -154,8 +154,8 @@ def makeMap(f):
                 #print(range(tt1_df.shape[0]))
                 for i in range(int(tt1_df.shape[0])):
                     #print (i)
-                    tt = tt1_df.iloc[i]['Topten']
-                    tt_dict = ast.literal_eval(tt) #get the firs layer of "nest"
+                    tt_i = tt1_df.iloc[i]['Topten']
+                    tt_dict = ast.literal_eval(tt_i) #get the firs layer of "nest"
                     #print(tt_dict)
                     tt_df = pd.DataFrame(tt_dict)
                     #tt_df = tt_df.iloc[:,0].to_string(index = False)  #get the second layer of "nest"
