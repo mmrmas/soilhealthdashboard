@@ -120,6 +120,11 @@ def makeMap(f):
             dff = json.loads(stored)
             dff = pd.DataFrame(dff)
 
+        else:
+            dff = df.copy()
+        print("check")
+        print (dff)
+
         # prepare the data
         type_slctd = str(type_slctd)
         container_year = "Data for: {}".format(year_slctd)
@@ -145,16 +150,20 @@ def makeMap(f):
                 this_lat = tt1_df.iloc[0]['Lat']
                 this_lon = tt1_df.iloc[0]['Lon']
                 rows = pd.DataFrame()
-                for i in range(tt1_df.shape[0]):
+                #print (tt1_df.shape[0])
+                #print(range(tt1_df.shape[0]))
+                for i in range(int(tt1_df.shape[0])):
                     #print (i)
                     tt = tt1_df.iloc[i]['Topten']
                     tt_dict = ast.literal_eval(tt) #get the firs layer of "nest"
-                    tt_df = pd.DataFrame([tt_dict])
-                    tt_df = tt_df.iloc[:,0].to_string(index = False)  #get the second layer of "nest"
-                    tt_dict = ast.literal_eval(tt_df)
-                    tt_df = pd.DataFrame([tt_dict])
-                    rows = rows.append(tt_df,ignore_index=True)
+                    #print(tt_dict)
+                    tt_df = pd.DataFrame(tt_dict)
+                    #tt_df = tt_df.iloc[:,0].to_string(index = False)  #get the second layer of "nest"
+                    #tt_dict = ast.literal_eval(tt_df)
+                    #tt_df = pd.DataFrame([tt_dict])
+                    rows = rows.append(tt_df.T,ignore_index=True)
                 topten_avg = rows.mean().to_json()
+                #print (topten_avg)
                 #store this in the dff_topten_out dataframe
                 dff_topten_out = dff_topten_out.append({'Lat': this_lat, 'Lon': this_lon , 'tt_average': topten_avg}, ignore_index=True)
 
@@ -205,6 +214,8 @@ def makeMap(f):
             dff = json.loads(data)
             dff = pd.DataFrame(dff)
             print(dff)
+        else:
+            dff = df.copy()
 
 
         # check if we need to link out
@@ -236,17 +247,12 @@ def makeMap(f):
         fig.update_traces(marker={'size': 10})
         fig.update_layout(mapbox_center ={'lat':center_lat, 'lon':center_lon})
 
-        print('2')
 
         return fig, top_rank_barplot, None, clicked, clicked
 
     app.run_server(debug=True, threaded=True)
 
 
-
-#objetcs and methods
-def calculateTopten(i):
-    print(i)
 
 
 class topten:
@@ -272,10 +278,6 @@ def topGraph(taxa):
     this_fig = px.bar(tt_df, x = 'taxa', y = 'percentage', barmode="group", log_y=True, hover_data=['taxa', 'percentage'], text='taxa')
     this_fig.update_xaxes(tickangle=90)
     return (this_fig)
-
-
-def getDatafile(input_file):
-    df_formap = pd.read_csv(input_file, sep = ',')
 
 
 # ------------------------------------------------------------------------------
