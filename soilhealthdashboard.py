@@ -25,21 +25,58 @@ app.layout = html.Div([
 
     dcc.Store(id='session'),
     html.Div(
-        children = [
-            html.H2("SquaredAnt Soil Health Dashboard", style={'text-align': 'left'})
-        ]
-    ),
-    html.H4("map of microbiome-based soil health indications"),
-    html.Div(
+        style={'display': 'flex'},
         children = [
             html.Div(
-                children = dcc.Graph(
-                    id='my_soil_map',
-                    figure={}
-                ),
-                style={'width': '100%', 'display': 'inline-block'}
-            )
-        ]
+                style = {'flex': '15%'},
+                children = [
+                    html.H2("SquaredAnt Soil Health Dashboard", style={'text-align': 'left'}),
+                    dcc.Dropdown(id="slct_year",
+                    options=[
+                         {"label": "2015", "value": 2015},
+                         {"label": "2016", "value": 2016},
+                         {"label": "2017", "value": 2017},
+                         {"label": "2018", "value": 2018},
+                         {"label": "2019", "value": 2019},
+                         {"label": "2020", "value": 2020},
+                         {"label": "2021", "value": 2021},
+                         {"label": "All", "value": "all years"}],
+                        multi=False,
+                        value="all years",
+                        style={'width': "100%"}
+                    ),
+                    html.Div(id='year_container', children=[]),
+                    dcc.Dropdown(id="slct_type",
+                        options=[
+                            {"label": "Pollution", "value": 'Pollution'},
+                            {"label": "Degradation", "value": 'Degradation'}
+                        ],
+                        multi=False,
+                        value="Pollution",
+                        style={'width': "100%"}
+                    ),
+                    html.Div(id='type_container', children=[]),
+                    html.Br(),
+                ],
+            ),
+            html.Div(
+                style = {'flex': '80%'},
+                children = [
+                    html.H4("map of microbiome-based soil health indications"),
+                    html.Div(
+                        children = [
+                            html.Div(
+                                children = dcc.Graph(
+                                    id='my_soil_map',
+                                    figure={}
+                                ),
+                                style={'width': '100%', 'display': 'inline-block'}
+                            )
+                        ]
+                    ),
+                ],
+            ),
+        ],
     ),
     html.Div(
         style={'display': 'flex'},
@@ -47,51 +84,33 @@ app.layout = html.Div([
             html.Div(
                 style = {'flex': '50%'},
                 children = [
-                    html.H4("Top taxa on selected location"),
+                    html.H4("Historical data"),
                     html.Div(
                         children = dcc.Graph(
-                            id='my_topten',
+                            id='my_history',
                             figure={}
                         )
-                    )
+                    ),
                 ],
             ),
             html.Div(
                 style = {'flex': '50%'},
                 children = [
-                    html.Div("Select year or soil diagnosis"),
-                        dcc.Dropdown(id="slct_year",
-                                 options=[
-                                     {"label": "2015", "value": 2015},
-                                     {"label": "2016", "value": 2016},
-                                     {"label": "2017", "value": 2017},
-                                     {"label": "2018", "value": 2018},
-                                     {"label": "2019", "value": 2019},
-                                     {"label": "2020", "value": 2020},
-                                     {"label": "2021", "value": 2021},
-                                     {"label": "All", "value": "all years"}],
-                                 multi=False,
-                                 value="all years",
-                                 style={'width': "60%"}
-                                 ),
-                    html.Div(id='year_container', children=[]),
-                    dcc.Dropdown(id="slct_type",
-                                 options=[
-                                     {"label": "Pollution", "value": 'Pollution'},
-                                     {"label": "Degradation", "value": 'Degradation'}],
-                                 multi=False,
-                                 value="Pollution",
-                                 style={'width': "60%"}
-                    ),
-                    html.Div(id='type_container', children=[]),
-                    html.Br(),
+                    html.H4("Link to original data"),
                     html.A(
                         children="no link",
                         id="data_link",
                         href="",
                         target="_blank",
                         style={'text-align:': 'center'}
-                    )
+                    ),
+                    html.H4("Top taxa on selected location"),
+                    html.Div(
+                        children = dcc.Graph(
+                            id='my_topten',
+                            figure={}
+                        )
+                    ),
                 ],
             )
         ],
@@ -191,6 +210,7 @@ def update_graph(year_slctd, type_slctd, prev_year, prev_type, stored):
 @app.callback(
     [Output(component_id='my_soil_map', component_property='figure'),
      Output(component_id='my_topten', component_property='figure'),
+     Output(component_id='my_history', component_property='figure'),
      Output(component_id='my_soil_map', component_property='clickData'),
      Output(component_id='data_link', component_property='children'),
      Output(component_id='data_link', component_property='href')
@@ -207,6 +227,7 @@ def make_figures(data, clickData, type_slctd):
     clicked = "no selection"
     url = None
     top_rank_barplot = px.bar(pd.DataFrame([{'no clicked data':0}]), barmode="group")
+    historical_data_plot = px.bar(pd.DataFrame([{'no clicked data':0}]), barmode="group")
     center_lon = 0
     center_lat = 0
     zoom = 1
@@ -231,25 +252,27 @@ def make_figures(data, clickData, type_slctd):
         matching_index = dff.index[dff['ID'] == this_id].tolist()
         send_this = dff['tt_average'][matching_index[0]]
         top_rank_barplot = topGraph(send_this)
+        historic_data = df[(df['Lat']==center_lat) & (df['Lon'] == center_lon)]
+        historical_data_plot = historyPlot(historic_data)
         del(url)
 
 
     # Plotly Express
-    fig = px.scatter_mapbox(dff, lat="Lat", lon="Lon", color=type_slctd, custom_data = ('link',), hover_data=['ID',type_slctd],range_color=[0, 1], zoom=zoom, height=400,  color_continuous_scale=['blue', 'red'])
+    fig = px.scatter_mapbox(dff, lat="Lat", lon="Lon", color=type_slctd, custom_data = ('link',), hover_data=['ID',type_slctd],range_color=[0, 1], zoom=zoom, height=400,  color_continuous_scale=['green', 'orange'])
     fig.update_layout(mapbox_style= "open-street-map")
-    fig.update_layout(mapbox_pitch= 10)
+    fig.update_layout(mapbox_pitch= 15)
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
     fig.update_layout(
         hoverlabel=dict(
             bgcolor="white",
-            font_size=14,
+            font_size=15,
         )
     )
     fig.update_traces(marker={'size': 10})
     fig.update_layout(mapbox_center ={'lat':center_lat, 'lon':center_lon})
 
 
-    return fig, top_rank_barplot, None, clicked, clicked
+    return fig, top_rank_barplot, historical_data_plot, None, clicked, clicked
 
 
 
@@ -279,6 +302,25 @@ def topGraph(taxa):
     this_fig = px.bar(tt_df, x = 'taxa', y = 'percentage', barmode="group", log_y=True, hover_data=['taxa', 'percentage'], text='taxa')
     this_fig.update_xaxes(tickangle=90)
     return (this_fig)
+
+def historyPlot(data):
+    #first summarize per year per pollution or degradation
+    data_grouped_pollution  = data.groupby('Year').agg({'Pollution': ['mean', 'min', 'max']})
+    data_grouped_pollution= data_grouped_pollution['Pollution']
+    data_grouped_pollution.reset_index(inplace=True)
+    data_grouped_pollution['Indicator'] = 'Pollution'
+    print (data_grouped_pollution)
+    data_grouped_degradation  = data.groupby('Year').agg({'Degradation': ['mean', 'min', 'max']})
+    data_grouped_degradation= data_grouped_degradation['Degradation']
+    data_grouped_degradation.reset_index(inplace=True)
+    data_grouped_degradation['Indicator'] = 'Degradation'
+    print (data_grouped_degradation)
+    data_grouped = pd.concat([data_grouped_pollution, data_grouped_degradation], axis = 0)
+    print (data_grouped)
+    this_fig = px.bar(data_grouped, x="Year", y="mean", color='Indicator',  barmode="group")
+    this_fig.update_yaxes(range=[0, 1])
+    return this_fig
+
 
 
 # ------------------------------------------------------------------------------
